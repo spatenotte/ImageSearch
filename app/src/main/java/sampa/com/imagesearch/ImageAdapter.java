@@ -42,6 +42,7 @@ public class ImageAdapter extends ArrayAdapter<Image> {
         Picasso.with(getContext())
             .load(image.link)
             .fit().centerInside()
+            .placeholder(R.drawable.ic_clock)
             .into(viewHolder.imageView);
 
         return convertView;
