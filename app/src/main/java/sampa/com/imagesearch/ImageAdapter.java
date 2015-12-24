@@ -33,13 +33,16 @@ public class ImageAdapter extends ArrayAdapter<Image> {
             viewHolder = new ViewHolderItem();
             viewHolder.imageView = (ImageView) convertView.findViewById(R.id.image);
             convertView.setTag(viewHolder);
+
         }
         else {
             viewHolder = (ViewHolderItem) convertView.getTag();
         }
+
         Picasso.with(getContext())
-                .load(image.link)
-                .into(viewHolder.imageView);
+            .load(image.link)
+            .fit().centerInside()
+            .into(viewHolder.imageView);
 
         return convertView;
     }
