@@ -1,20 +1,13 @@
 package sampa.com.imagesearch;
 
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
-
 public class Image {
-    Bitmap bitmap;
+    public String link;
+    public int height;
+    public int width;
 
-    public Image(Bitmap bitmap) {
-        this.bitmap = bitmap;
-    }
-
-    public Bitmap getBitmap() {
-        return bitmap;
-    }
-
-    public void setBitmap(Bitmap bitmap) {
-        this.bitmap = bitmap;
+    public Image(String link, int height, int width) {
+        this.link = link;
+        this.height = height;
+        this.width = width;
     }
 }
