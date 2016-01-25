@@ -11,19 +11,15 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.ListView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-import retrofit.Callback;
-import retrofit.RestAdapter;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.GsonConverterFactory;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import sampa.com.imagesearch.models.Item;
+import sampa.com.imagesearch.models.TagImages;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -52,77 +48,53 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-                    executeRequest(input.getText().toString(), null);
+                    executeRequest(input.getText().toString());
                 }
             }
         });
     }
 
-    private boolean executeRequest(String tag, Callback<SearchResponse> callback) {
-        final Callback<SearchResponse> cb = callback;
+    private void executeRequest(String tag) {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://api.imgur.com/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
 
-        RestAdapter restAdapter = buildRestAdapter();
-        restAdapter.create(ImgurApi.class).getImages(
-            Constants.getClientAuth(),
-            tag,
-            new Callback<SearchResponse>() {
-                @Override
-                public void success(SearchResponse searchResponse, Response response) {
-                    if (cb != null) cb.success(searchResponse, response);
-                    if (response == null) {
-                        Log.d("ImageSearch", "Null response");
-                        Snackbar.make(findViewById(R.id.layout_main), "No response from server", Snackbar.LENGTH_LONG).show();
-                    }
-                    try {
-                        JSONObject object = parseJSON(response);
-                        Log.d("ImageSearch, length", String.valueOf(object.getJSONObject("data").getInt("total_items")));
-                        saveImages(object.getJSONObject("data"));
-                    } catch (JSONException | IOException e) {
-                        e.printStackTrace();
-                    }
+        ImgurApi apiService = retrofit.create(ImgurApi.class);
+
+        Call<TagImages> call = apiService.getImages(Constants.getClientAuth(), tag);
+        call.enqueue(new Callback<TagImages>() {
+            @Override
+            public void onResponse(Response<TagImages> response) {
+                int statusCode = response.code();
+                TagImages images = response.body();
+                if(statusCode != 200) {
+                    Snackbar.make(findViewById(R.id.layout_main), "Request failed", Snackbar.LENGTH_LONG).show();
                 }
-
-                @Override
-                public void failure(RetrofitError error) {
-                    Log.d("ImageSearch", "Request failure");
-                    Snackbar.make(findViewById(R.id.layout_main), "Network error", Snackbar.LENGTH_LONG).show();
+                else {
+                    saveImages(images);
                 }
             }
-        );
-        return cb == null;
+
+            @Override
+            public void onFailure(Throwable t) {
+                Log.d("Failure", t.toString());
+                Snackbar.make(findViewById(R.id.layout_main), "No response from server", Snackbar.LENGTH_LONG).show();
+            }
+        });
     }
 
-    private JSONObject parseJSON(Response response) throws IOException, JSONException {
-        BufferedReader streamReader = new BufferedReader(new InputStreamReader(response.getBody().in()));
-        StringBuilder responseStrBuilder = new StringBuilder();
 
-        String inputStr;
-        while ((inputStr = streamReader.readLine()) != null) {
-            responseStrBuilder.append(inputStr);
-        }
-        return new JSONObject(responseStrBuilder.toString());
-    }
-
-    private RestAdapter buildRestAdapter() {
-        return new RestAdapter.Builder()
-                .setEndpoint(ImgurApi.server)
-                .setLogLevel(RestAdapter.LogLevel.FULL)
-                .build();
-    }
-
-    private void saveImages(JSONObject object) throws JSONException {
-        Log.d("saveImages", "Entered");
-        JSONArray images = (JSONArray) object.get("items");
-        int length = images.length();
-        JSONObject current;
-        for(int i=0; i < length; i++) {
-            current = images.getJSONObject(i);
-            if (current.has("type") && current.getString("type").equals("image/jpeg")) {
-                Log.d("saveImages", "Image" + i + ": " + current.getString("link"));
+    private void saveImages(TagImages images) {
+        for(Item image : images.getData().getItems()) {
+            if(image.getIsAlbum() == false && image.getType().equals("image/jpeg")) {
+                String link = image.getLink();
                 imageAdapter.add(new Image(
-                    current.getString("link"),
-                    current.getInt("height"),
-                    current.getInt("width")));
+                    link.substring(0, link.length() - 4) + "l" + link.substring(link.length() - 4),
+                    link,
+                    image.getHeight(),
+                    image.getWidth()
+                ));
             }
         }
     }

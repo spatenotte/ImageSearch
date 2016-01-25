@@ -1,17 +1,15 @@
 package sampa.com.imagesearch;
 
-import retrofit.Callback;
-import retrofit.http.GET;
-import retrofit.http.Header;
-import retrofit.http.Path;
+import retrofit2.Call;
+import retrofit2.http.GET;
+import retrofit2.http.Header;
+import retrofit2.http.Path;
+import sampa.com.imagesearch.models.TagImages;
 
 public interface ImgurApi {
-    String server = "https://api.imgur.com";
-
-    @GET("/3/gallery/t/{t_name}")
-    void getImages(
+    @GET("3/gallery/t/{t_name}")
+    Call<TagImages> getImages(
             @Header("Authorization") String auth,
-            @Path("t_name") String tag,
-            Callback<SearchResponse> cb
+            @Path("t_name") String tag
     );
 }
